@@ -64,6 +64,7 @@
     "karma-junit-reporter": "^2.0.1",
     "karma-mocha": "^2.0.1",
     "karma-source-map-support": "^1.4.0",
+    "miniprogram-api-typings": "^4.1.2",
     "mocha": "^10.2.0",
     "mocha-junit-reporter": "^2.2.0",
     "path-browserify": "^1.0.1",
