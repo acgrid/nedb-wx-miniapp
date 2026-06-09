@@ -46,7 +46,7 @@
   "homepage": "https://github.com/acgrid/nedb-wx-miniapp",
   "repository": {
     "type": "git",
-    "url": "git@github.com:acgrid/nedb-wx-miniapp.git"
+    "url": "git+ssh://git@github.com/acgrid/nedb-wx-miniapp.git"
   },
   "devDependencies": {
     "@seald-io/binary-search-tree": "^1.0.3",
