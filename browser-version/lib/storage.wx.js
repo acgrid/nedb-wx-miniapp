@@ -129,8 +129,12 @@ const appendFileAsync = async (filename, toAppend, options) => {
  * @async
  */
 const readFileAsync = async (filename, options) => {
+  const filePath = normalizeFilename(filename)
+  const statRes = await callFs('stat', { path: filePath })
+  if (!statRes.stats || statRes.stats.size === 0) return ''
+
   const res = await callFs('readFile', {
-    filePath: normalizeFilename(filename),
+    filePath,
     encoding: encodingFromOptions(options)
   })
   return res.data || ''

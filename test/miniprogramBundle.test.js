@@ -16,6 +16,7 @@ const wxStub = {
   env: { USER_DATA_PATH: '/tmp/user-data' },
   getFileSystemManager: () => ({
     access: () => {},
+    stat: () => {},
     rename: () => {},
     writeFile: () => {},
     appendFile: () => {},
@@ -72,5 +73,76 @@ describe('Weixin Mini Program bundle', function () {
 
     assert.equal(typeof sandbox.module.exports, 'function')
     assert.deepEqual(externalRequires, [])
+  })
+
+  it('loads an empty datafile without calling readFile on Mini Program clients', async function () {
+    childProcess.execFileSync(process.execPath, [buildScriptPath], { cwd: root, stdio: 'pipe' })
+
+    const source = fs.readFileSync(bundlePath, 'utf8')
+    const calls = []
+    const files = new Set()
+    const fsm = {
+      access: ({ path, success, fail }) => {
+        calls.push(['access', path])
+        if (files.has(path)) success({})
+        else fail({ errMsg: `access:fail no such file or directory ${path}` })
+      },
+      mkdir: ({ dirPath, success }) => {
+        calls.push(['mkdir', dirPath])
+        success({})
+      },
+      writeFile: ({ filePath, data, success }) => {
+        calls.push(['writeFile', filePath, data])
+        files.add(filePath)
+        success({})
+      },
+      stat: ({ path, success }) => {
+        calls.push(['stat', path])
+        success({ stats: { size: 0 } })
+      },
+      readFile: ({ filePath, fail }) => {
+        calls.push(['readFile', filePath])
+        fail({ errMsg: 'readFile:fail the value of "position" is out of range', errno: 1301009 })
+      },
+      rename: ({ oldPath, newPath, success }) => {
+        calls.push(['rename', oldPath, newPath])
+        files.delete(oldPath)
+        files.add(newPath)
+        success({})
+      },
+      appendFile: ({ filePath, data, success }) => {
+        calls.push(['appendFile', filePath, data])
+        files.add(filePath)
+        success({})
+      },
+      unlink: ({ filePath, success }) => {
+        calls.push(['unlink', filePath])
+        files.delete(filePath)
+        success({})
+      }
+    }
+    const sandbox = {
+      module: { exports: {} },
+      exports: {},
+      require: request => {
+        throw new Error('Unexpected external require: ' + request)
+      },
+      wx: {
+        env: { USER_DATA_PATH: '/tmp/user-data' },
+        getFileSystemManager: () => fsm
+      },
+      console,
+      setTimeout,
+      clearTimeout
+    }
+    sandbox.exports = sandbox.module.exports
+
+    vm.runInNewContext(source, sandbox, { filename: bundlePath })
+
+    const Datastore = sandbox.module.exports
+    const db = new Datastore({ filename: 'empty.db' })
+    await db.loadDatabaseAsync()
+
+    assert.equal(calls.some(([method]) => method === 'readFile'), false)
   })
 })
